@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Motos - Oficina</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Motos</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="produtos.html">Produtos</a>
+      <a href="orcamentos.html">Orçamentos</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <h2>Cadastrar Moto</h2>
+      <form id="form-moto">
+        <input type="text" id="modelo" placeholder="Modelo" required />
+        <input type="text" id="placa" placeholder="Placa" />
+        <button type="submit">Cadastrar</button>
+      </form>
+
+      <h2>Lista de Motos</h2>
+      <table>
+        <thead><tr><th>Modelo</th><th>Placa</th><th>Data</th></tr></thead>
+        <tbody id="lista-motos"></tbody>
+      </table>
+      <p class="footer-note">Atualize para recarregar dados.</p>
+      <button id="btn-refresh">Atualizar</button>
+    </section>
+  </main>
+
+<script src="common.js"></script>
+<script>
+async function fetchMotos() {
+  try {
+    const res = await fetch(API_BASE + '/api/motos');
+    const data = await handleResponse(res);
+    const tbody = document.getElementById('lista-motos');
+    tbody.innerHTML = '';
+    data.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.modelo}</td><td>${m.placa}</td><td>${new Date(m.created_at).toLocaleString()}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    alert('Erro ao carregar motos: ' + err.message);
+  }
+}
+
+document.getElementById('form-moto').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const modelo = document.getElementById('modelo').value.trim();
+  const placa = document.getElementById('placa').value.trim();
+  if (!modelo) return alert('Modelo obrigatório');
+  try {
+    await handleResponse(await fetch(API_BASE + '/api/motos', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ modelo, placa })
+    }));
+    document.getElementById('form-moto').reset();
+    fetchMotos();
+  } catch(err) {
+    alert('Erro ao criar moto: ' + err.message);
+  }
+});
+
+document.getElementById('btn-refresh').addEventListener('click', fetchMotos);
+
+fetchMotos();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Orçamentos - Oficina</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Orçamentos</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="produtos.html">Produtos</a>
+      <a href="motos.html">Motos</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <h2>Cadastrar Orçamento</h2>
+      <form id="form-orcamento">
+        <select id="cliente_id"></select>
+        <input type="number" step="0.01" id="valor" placeholder="Valor" required />
+        <button type="submit">Cadastrar</button>
+      </form>
+
+      <h2>Lista de Orçamentos</h2>
+      <table>
+        <thead><tr><th>Cliente</th><th>Valor</th><th>Data</th></tr></thead>
+        <tbody id="lista-orcamentos"></tbody>
+      </table>
+      <p class="footer-note">Os clientes aparecem no select ao carregar a página.</p>
+      <button id="btn-refresh">Atualizar</button>
+    </section>
+  </main>
+
+<script src="common.js"></script>
+<script>
+async function fetchClientesToSelect() {
+  try {
+    const res = await fetch(API_BASE + '/api/clientes');
+    const clients = await handleResponse(res);
+    const sel = document.getElementById('cliente_id');
+    sel.innerHTML = '';
+    clients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.nome + (c.telefone ? ' — ' + c.telefone : '');
+      sel.appendChild(opt);
+    });
+  } catch(err) {
+    alert('Erro ao carregar clientes: ' + err.message);
+  }
+}
+
+async function fetchOrcamentos() {
+  try {
+    const res = await fetch(API_BASE + '/api/orcamentos');
+    const data = await handleResponse(res);
+    const tbody = document.getElementById('lista-orcamentos');
+    tbody.innerHTML = '';
+    // We'll fetch clients to show name
+    const clientsRes = await fetch(API_BASE + '/api/clientes');
+    const clients = await handleResponse(clientsRes);
+    const clientsMap = new Map(clients.map(c=>[c.id,c.nome]));
+    data.forEach(o => {
+      const tr = document.createElement('tr');
+      const clienteNome = clientsMap.get(o.cliente_id) || o.cliente_id;
+      tr.innerHTML = `<td>${clienteNome}</td><td>R$ ${Number(o.valor).toFixed(2)}</td><td>${new Date(o.criado_em).toLocaleString()}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch(err) {
+    alert('Erro ao carregar orçamentos: ' + err.message);
+  }
+}
+
+document.getElementById('form-orcamento').addEventListener('submit', async (e)=> {
+  e.preventDefault();
+  const cliente_id = document.getElementById('cliente_id').value;
+  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  if (!cliente_id) return alert('Selecione um cliente');
+  try {
+    await handleResponse(await fetch(API_BASE + '/api/orcamentos', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cliente_id, valor })
+    }));
+    document.getElementById('form-orcamento').reset();
+    fetchOrcamentos();
+    fetchClientesToSelect();
+  } catch(err) {
+    alert('Erro ao criar orçamento: ' + err.message);
+  }
+});
+
+document.getElementById('btn-refresh').addEventListener('click', ()=>{ fetchOrcamentos(); fetchClientesToSelect(); });
+
+fetchClientesToSelect();
+fetchOrcamentos();
+</script>
+</body>
+</html>
